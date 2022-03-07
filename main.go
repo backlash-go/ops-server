@@ -1,16 +1,27 @@
 package main
 
 import (
-	"net/http"
-
+	"fmt"
 	"github.com/labstack/echo/v4"
+	"gopkg.in/ldap.v2"
+	"ops-server/api"
+
 
 )
 
 func main() {
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!!!")
-	})
+
+
+	api.OperateLdap(e.Group("/ldap"))
+
 	e.Logger.Fatal(e.Start(":1323"))
+
+	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", "ldap.example.com", 389))
+
+	l.Bind()
+
+
+
+
 }
