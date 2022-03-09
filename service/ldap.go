@@ -29,7 +29,7 @@ func CreateLdapConnection() (*Ldap, error) {
 
 }
 
-func (l *Ldap) CreateLdapUser(p *entity.CreateUserParams) error {
+func (l *Ldap) CreateUser(p *entity.CreateUserParams) error {
 
 	addRequest := ldap.NewAddRequest(fmt.Sprintf("cn=%s,ou=person,dc=langzhihe,dc=com", p.Cn))
 
@@ -37,6 +37,10 @@ func (l *Ldap) CreateLdapUser(p *entity.CreateUserParams) error {
 		{
 			Type: "objectClass",
 			Vals: []string{"inetOrgPerson"},
+		},
+		{
+			Type: "employeeType",
+			Vals: p.EmployeeType,
 		},
 		{
 			Type: "cn",
@@ -64,9 +68,20 @@ func (l *Ldap) CreateLdapUser(p *entity.CreateUserParams) error {
 
 	if err != nil {
 		log.Printf("client.Add(addRequest) is err %s\n", err)
-		return  err
+		return err
 	}
 
 	return nil
 
+}
+
+func (l *Ldap) DeleteUser(p *entity.DeleteUserParams) error {
+
+	delRequest := ldap.NewDelRequest(p.Dn, nil)
+	err := l.client.Del(delRequest)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
