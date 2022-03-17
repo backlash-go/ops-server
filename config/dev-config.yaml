@@ -1,0 +1,18 @@
+env: dev
+database:
+  host: 127.0.0.1
+  port: 3306
+  user: devops
+  password: fvf7sfRj23ns1adf
+  name: ops
+
+
+
+authRedis:
+  password: sahj2314sahdj
+  db: 11
+  host: 127.0.0.1 #172.18.214.173:6379
+  port: 6379
+
+
+logDir: /tmp
