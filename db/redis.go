@@ -1,71 +1,71 @@
 package db
 
 import (
+	"errors"
+	"fmt"
+	"github.com/go-redis/redis"
+	"log"
+	"strconv"
+	"strings"
 	"time"
-
-	"github.com/garyburd/redigo/redis"
 )
 
-var pool *redis.Pool
+// RDClient redis 的客户端
+var RDClient *redis.Client
 
-var dataPool *redis.Pool
+// InitRedis 初始化redis
+func InitRedis(host, port, password, db string) {
 
-func GetRedisPool() *redis.Pool {
-	return pool
-}
-
-func GetDataRedisPool() *redis.Pool {
-	return dataPool
-}
-
-func InitRedis(addr, pwd, choiceDB string) {
-	pool = &redis.Pool{
-		MaxIdle:     10000,
-		MaxActive:   10000,
-		IdleTimeout: 5 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", addr)
-			if err != nil {
-				return nil, err
-			}
-			if pwd == "" {
-				return c, nil
-			}
-			if _, err := c.Do("AUTH", pwd); err != nil {
-				_ = c.Close()
-				return nil, err
-			}
-			if _, err := c.Do("SELECT", choiceDB); err != nil {
-				_ = c.Close()
-				return nil, err
-			}
-			return c, nil
-		},
+	dsn := strings.Join([]string{host, port}, ":")
+	Db, _ := strconv.Atoi(db)
+	RDClient = redis.NewClient(&redis.Options{
+		Addr:     dsn,
+		Password: password,
+		DB:       Db,
+	})
+	pong, err := RDClient.Ping().Result()
+	if err != nil {
+		log.Println("failed to connect redis")
+		panic(err)
 	}
+
+	log.Printf("redis connected ping is %s\n", pong)
+
+	return
 }
 
-func InitDataRedis(addr, pwd, choiceDB string) {
-	dataPool = &redis.Pool{
-		MaxIdle:     10000,
-		MaxActive:   10000,
-		IdleTimeout: 5 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", addr)
-			if err != nil {
-				return nil, err
-			}
-			if pwd == "" {
-				return c, nil
-			}
-			if _, err := c.Do("AUTH", pwd); err != nil {
-				_ = c.Close()
-				return nil, err
-			}
-			if _, err := c.Do("SELECT", choiceDB); err != nil {
-				_ = c.Close()
-				return nil, err
-			}
-			return c, nil
-		},
-	}
+// GetRedis 获取redis链接实例
+func GetRedis() *redis.Client {
+	return RDClient
 }
+
+func RedisHMSet(token string, keyFields map[string]interface{}) error {
+
+	return RDClient.HMSet(token, keyFields).Err()
+
+}
+
+func RedisHMGet(token string, keyFields ...string) ([]string, error) {
+	tmpSlice := make([]string, 0, 0)
+	res, err := RDClient.HMGet(token, keyFields...).Result()
+	for k, _ := range res {
+		if res[k] == nil {
+			return nil, errors.New(fmt.Sprintf("redis HMGet key不存在 token is %s and keyFields is %s \n", token, keyFields))
+		}
+		v, ok := res[k].(string)
+		if !ok {
+			return nil, errors.New("RedisHMGet 断言失败")
+		}
+		tmpSlice = append(tmpSlice, v)
+	}
+	return tmpSlice, err
+
+}
+
+func RedisSetKeyTtl(token string, expire time.Duration) error {
+
+	return RDClient.Expire(token, expire).Err()
+}
+
+
+

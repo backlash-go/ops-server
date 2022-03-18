@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo/v4"
+	"github.com/rs/xid"
 	"log"
 	"ops-server/consts"
 	"ops-server/db"
 	"ops-server/entity"
+	"ops-server/models"
 	"ops-server/service"
 	"ops-server/utils"
+	"time"
 )
 
 func OperateLdap(g *echo.Group) {
@@ -87,10 +90,9 @@ func AuthLdapUser(ctx echo.Context) error {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapSearchUserFailed], consts.CodeLdapSearchUserFailed)
 	}
 
-	//result 为空查询不到用户
+	//result 为空查询不到ldap用户 返回登录失败
 	if len(result.Entries) == 0 {
 		utils.GetLogger().Errorf("api AuthLdapUser SearchUser ldap  can't find user    err is %s\n", err.Error())
-
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapUserNotExist], consts.CodeLdapUserNotExist)
 	}
 
@@ -112,6 +114,33 @@ func AuthLdapUser(ctx echo.Context) error {
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			//todo create user record
+
+			userId, err := service.AddUser(models.User{UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail})
+			if err != nil {
+				utils.GetLogger().Errorf("api AuthLdapUser AddUser is failed   err is %s\n", err.Error())
+				return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+			}
+			token := xid.New().String()
+
+			tmpMap := make(map[string]interface{})
+			tmpMap["id"] = userId
+			tmpMap["user_name"] = ldapUserInfo.Cn
+			tmpMap["email"] = ldapUserInfo.Mail
+
+			if err := db.RedisHMSet(token, tmpMap); err != nil {
+				utils.GetLogger().Errorf("api AuthLdapUser RedisHMSet is failed   err is %s\n", err.Error())
+				return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+			}
+
+			if err := db.RedisSetKeyTtl(token, time.Minute*60); err != nil {
+				utils.GetLogger().Errorf("api AuthLdapUser RedisSetKeyTtl is failed   err is %s\n", err.Error())
+				return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+			}
+
+			userInfo := models.User{Id: userId, UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail}
+
+			return SuccessResp(ctx, userInfo)
+
 		}
 		utils.GetLogger().Errorf("api AuthLdapUser QueryUser is failed   err is %s\n", err.Error())
 		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
@@ -122,14 +151,44 @@ func AuthLdapUser(ctx echo.Context) error {
 			"email": ldapUserInfo.Mail,
 		}
 
+		user.Email = ldapUserInfo.Mail
+
 		if err := service.UpdateUser(user.Id, updates); err != nil {
 			utils.GetLogger().Errorf("api AuthLdapUser UpdateUser is failed   err is %s\n", err.Error())
 			return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 		}
 	}
 
+	//生成TOKEN
+	token := xid.New().String()
+
+	//存入redis
+
+	tmpMap := make(map[string]interface{})
+	tmpMap["id"] = user.Id
+	tmpMap["user_name"] = user.UserName
+	tmpMap["email"] = user.Email
+
+	if err := db.RedisHMSet(token, tmpMap); err != nil {
+		utils.GetLogger().Errorf("api AuthLdapUser RedisHMSet is failed   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	if err := db.RedisSetKeyTtl(token, time.Minute*60); err != nil {
+		utils.GetLogger().Errorf("api AuthLdapUser RedisSetKeyTtl is failed   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
 	fmt.Printf("cn is : %v\n", user)
 
-	return SuccessResp(ctx, nil)
+
+
+	resp := entity.LoginAuthResp{
+		Token:    token,
+		UserId: int64(user.Id),
+		UserName: user.UserName,
+		Email:    user.Email,
+	}
+
+	return SuccessResp(ctx, resp)
 
 }

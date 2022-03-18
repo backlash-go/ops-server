@@ -25,13 +25,17 @@ type AuthUserParams struct {
 	UserPassword string `json:"user_password"`
 }
 
-
-
-type LdapUserInfo struct {
-	Cn string
-	Mail string
+type LoginAuthResp struct {
+	Token    string
+	UserId   int64
+	UserName string
+	Email    string
 }
 
+type LdapUserInfo struct {
+	Cn   string
+	Mail string
+}
 
 type Ldap struct {
 	Client *ldap.Conn
@@ -43,7 +47,7 @@ func (l *Ldap) SearchUser(u *AuthUserParams) (*ldap.SearchResult, error) {
 		"dc=langzhihe,dc=com",
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(userPassword=%s)(cn=%s))", u.UserPassword, u.Cn),
-		[]string{"dn","mail","sn","givenName","cn"},
+		[]string{"dn", "mail", "sn", "givenName", "cn"},
 		nil,
 	)
 
