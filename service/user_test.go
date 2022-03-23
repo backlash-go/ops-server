@@ -17,7 +17,7 @@ func TestQueryUser(t *testing.T) {
 	}{
 		{
 			name:    "TestQueryUser",
-			args:    args{cn: "test1"},
+			args:    args{cn: "test11"},
 			wantErr: false,
 		},
 	}
@@ -83,6 +83,165 @@ func TestAddUser(t *testing.T) {
 				t.Errorf("AddUser() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			fmt.Printf("id is : %+v", got)
+
+		})
+	}
+}
+
+func TestQueryRoleId(t *testing.T) {
+	type args struct {
+		userId uint64
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "TestQueryRoleId",
+			args:    args{userId: 12},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRoleIDs, err := QueryUserRoleId(tt.args.userId)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryRoleId() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("id is : %+v", gotRoleIDs)
+
+		})
+	}
+}
+
+func TestQueryRole(t *testing.T) {
+	type args struct {
+		roleId []uint64
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantRoleNames []string
+		wantErr       bool
+	}{
+		{
+			name:    "TestQueryRoleId",
+			args:    args{roleId: []uint64{2, 3}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRoleNames, err := QueryUserRoles(tt.args.roleId)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryRole() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("role_name is : %+v", gotRoleNames)
+
+		})
+	}
+}
+
+func TestQueryAllUser(t *testing.T) {
+	type args struct {
+		userName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestQueryAllUser",
+			args: args{userName: "sad"},
+		},}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotUser, err := QueryAllUser(tt.args.userName)
+			if err != nil {
+				t.Errorf("QueryAllUser() error = %v", err)
+				return
+			}
+			fmt.Printf("role_name is : %+v", gotUser)
+
+		})
+	}
+}
+
+func TestQueryUserRoleIdByRoleName(t *testing.T) {
+	type args struct {
+		roleName []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "TestQueryUserRoleIdByRoleName",
+			args:    args{roleName: []string{"admin", "devops"},},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRoleIDs, err := QueryUserRoleIdByRoleName(tt.args.roleName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryUserRoleIdByRoleName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("role_id is : %+v", gotRoleIDs)
+
+		})
+	}
+}
+
+func TestQueryPermissionIdByRoleId(t *testing.T) {
+	type args struct {
+		roleId []uint64
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{{name: "TestQueryPermissionIdByRoleId", args: args{roleId: []uint64{11, 11, 12}}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPermissionId, err := QueryPermissionIdByRoleId(tt.args.roleId)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryPermissionIdByRoleId() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("role_id is : %+v", gotPermissionId)
+
+		})
+	}
+}
+
+func TestQueryApi(t *testing.T) {
+	type args struct {
+		permissionId []uint64
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantApis []string
+		wantErr  bool
+	}{
+		{name: "TestQueryApi", args: args{permissionId: []uint64{1, 2}},wantErr:false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotApis, err := QueryApi(tt.args.permissionId)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryApi() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("gotApis is : %+v", gotApis)
 
 		})
 	}

@@ -14,6 +14,7 @@ func main() {
 
 	e.Use(middle.BeforeRequestValidate)
 
+
 	db.Init()
 	db.InitLdap()
 

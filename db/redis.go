@@ -62,10 +62,29 @@ func RedisHMGet(token string, keyFields ...string) ([]string, error) {
 
 }
 
-func RedisSetKeyTtl(token string, expire time.Duration) error {
+func RedisHGetAll(token string) (map[string]string, error) {
 
+	redisMap, err := RDClient.HGetAll(token).Result()
+	if err != nil {
+		return nil, err
+	}
+	if len(redisMap) == 0 {
+		return nil, nil
+	}
+	return redisMap, nil
+
+}
+
+func RedisSetKeyTtl(token string, expire time.Duration) error {
 	return RDClient.Expire(token, expire).Err()
 }
 
+func RedisKeyIsExist(token string) (int64, error) {
+	res, err := RDClient.Exists(token).Result()
 
+	if err != nil {
+		return 0, err
+	}
+	return res, err
 
+}

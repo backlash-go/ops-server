@@ -4,7 +4,7 @@ import (
 	"flag"
 	"github.com/spf13/viper"
 	"log"
-	"ops-server/utils"
+	"ops-server/logs"
 )
 
 func Init()  {
@@ -20,7 +20,7 @@ func Init()  {
 	log.Println(dbConf)
 
 
-	utils.InitLogger(viper.GetString("env"))
+	logs.InitLogger(viper.GetString("env"))
 
 	InitDB(dbConf["user"], dbConf["password"], dbConf["host"], dbConf["port"], dbConf["name"])
 

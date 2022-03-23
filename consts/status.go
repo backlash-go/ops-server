@@ -8,6 +8,9 @@ const (
 	CodeLdapConnectionFailed = 30004
 	CodeLdapUserNotExist     = 30005
 	CodeLdapSearchUserFailed = 30006
+	CodeUserNoAssignRole     = 30007
+
+	CodeUserNoApiPermission  = 40001
 
 	CodeNeedLogin = 400003
 
@@ -23,4 +26,6 @@ var StatusText = map[int]string{
 	CodeLdapSearchUserFailed: "搜索Ldap用户失败",
 	CodeInternalServerError:  "服务器内部错误，请联系开发人员",
 	CodeNeedLogin:            "invalid authorization",
+	CodeUserNoAssignRole:     "用户没有分配角色",
+	CodeUserNoApiPermission:  "接口没有权限",
 }

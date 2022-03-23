@@ -14,6 +14,7 @@ type CreateUserParams struct {
 	EmployeeType []string `json:"employee_type"`
 	DisplayName  string   `json:"display_name"`
 	UserPassword string   `json:"user_password"`
+	Role         []string `json:"role"`
 }
 
 type DeleteUserParams struct {
@@ -27,9 +28,10 @@ type AuthUserParams struct {
 
 type LoginAuthResp struct {
 	Token    string
-	UserId   int64
+	UserId   uint64
 	UserName string
 	Email    string
+	Role     []string
 }
 
 type LdapUserInfo struct {
@@ -91,7 +93,13 @@ func (l *Ldap) CreateUser(p *CreateUserParams) error {
 		{
 			Type: "title",
 			Vals: []string{fmt.Sprintf("%s-title", p.Cn)},
+		},
+		{
+			Type: "mail",
+			Vals: []string{p.Mail},
 		}}
+
+
 
 	addRequest.Attributes = attr
 	err := l.Client.Add(addRequest)

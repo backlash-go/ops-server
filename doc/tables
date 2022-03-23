@@ -24,6 +24,9 @@ CREATE TABLE `ops`.`role` (
 
 
 
+
+
+
 CREATE TABLE `ops`.`user_role` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(11)  NOT NULL DEFAULT 0 COMMENT '用户ID',
@@ -33,6 +36,31 @@ CREATE TABLE `ops`.`user_role` (
   `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+
+CREATE TABLE `ops`.`permission` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `api` varchar(64)  NOT NULL DEFAULT '' COMMENT '接口路径',
+  `name` varchar(64)  NOT NULL DEFAULT '' COMMENT 'api接口路径的功能和作用',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE `ops`.`role_permission` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `role_id` int(11)  NOT NULL DEFAULT 0 COMMENT '角色ID',
+  `permission_id` int(11) NOT NULL  DEFAULT 0 COMMENT '权限ID',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 
 
 

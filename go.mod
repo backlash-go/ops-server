@@ -12,6 +12,7 @@ require (
 	github.com/phachon/go-logger v0.0.0-20191215032019-86e4227f71ea
 	github.com/rs/xid v1.3.0
 	github.com/spf13/viper v1.10.1
+	golang.org/x/tools v0.1.5
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/ldap.v2 v2.5.1
 )

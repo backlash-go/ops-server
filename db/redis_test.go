@@ -100,3 +100,59 @@ func TestRedisHMGet(t *testing.T) {
 		})
 	}
 }
+
+func TestRedisKeyIsExist(t *testing.T) {
+	type args struct {
+		token string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "TestRedisKeyIsExist", args: args{token: "k11"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RedisKeyIsExist(tt.args.token)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RedisKeyIsExist() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("got is :%+v", got)
+
+		})
+	}
+}
+
+func TestRedisHGetAll(t *testing.T) {
+	type args struct {
+		token string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "TestRedisHGetAll", args: args{token: "c8sodaauof2mc0aq92s01"}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RedisHGetAll(tt.args.token)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RedisHGetAll() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got == nil {
+				fmt.Printf("got is nil")
+
+			}
+
+			fmt.Printf("got len is %+v", len(got))
+
+
+			fmt.Printf("got is %+v", got)
+		})
+	}
+}
