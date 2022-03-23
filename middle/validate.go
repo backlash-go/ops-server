@@ -38,8 +38,10 @@ func BeforeRequestValidate(next echo.HandlerFunc) echo.HandlerFunc {
 			return err
 		}
 
-
+        //判断用户 是否有角色
 		value, ok := userMap["roles"]
+
+		//如果有角色
 		if ok {
 			for _, v := range strings.Split(value, ",") {
 				if v == "admin" {
@@ -65,8 +67,6 @@ func BeforeRequestValidate(next echo.HandlerFunc) echo.HandlerFunc {
 			err := api.ErrorResp(c, consts.StatusText[consts.CodeUserNoAssignRole], consts.CodeUserNoAssignRole)
 			return err
 		}
-
-
 
 		return next(c)
 
