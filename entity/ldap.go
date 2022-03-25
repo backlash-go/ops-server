@@ -97,6 +97,10 @@ func (l *Ldap) CreateUser(p *CreateUserParams) error {
 		{
 			Type: "mail",
 			Vals: []string{p.Mail},
+		},
+		{
+			Type: "displayName",
+			Vals: []string{p.DisplayName},
 		}}
 
 
