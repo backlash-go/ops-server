@@ -18,12 +18,14 @@ func BeforeRequestValidate(next echo.HandlerFunc) echo.HandlerFunc {
 
 		reqPath := c.Request().URL.Path
 
-		if reqPath == "/api/ldap/user/auth" {
+		fmt.Println(reqPath)
+
+		if reqPath == "/api/ldap/user/login" || reqPath == "/api/ldap/health"  || reqPath == "/api/ldap/user/logout"{
 			return next(c)
 		}
 
 		token := c.Request().Header.Get("Authorization")
-
+        fmt.Printf("token is %s\n", token)
 		userMap, err := db.RedisHGetAll(token)
 
 		//if userMap == nil token不存在

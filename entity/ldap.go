@@ -27,11 +27,11 @@ type AuthUserParams struct {
 }
 
 type LoginAuthResp struct {
-	Token    string
-	UserId   uint64
-	UserName string
-	Email    string
-	Role     []string
+	Token    string `json:"token"`
+	UserId   uint64 `json:"user_id"`
+	UserName string `json:"user_name"`
+	Email    string `json:"email"`
+	Role     []string `json:"role"`
 }
 
 type LdapUserInfo struct {

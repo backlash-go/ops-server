@@ -86,5 +86,10 @@ func RedisKeyIsExist(token string) (int64, error) {
 		return 0, err
 	}
 	return res, err
+}
+
+func RedisDelKeys(key ...string) error {
+	err := RDClient.Del(key...).Err()
+	return err
 
 }

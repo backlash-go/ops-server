@@ -19,9 +19,10 @@ import (
 func OperateLdap(g *echo.Group) {
 	g.POST("/user/create", CreateLdapUser)
 	g.DELETE("/user/delete", DeleteLdapUser)
-	g.POST("/user/auth", AuthLdapUser)
+	g.POST("/user/login", AuthLdapUser)
 	g.GET("/health", HealthCheck)
 	g.GET("/user/info", QueryUserInfo)
+	g.POST("/user/logout", Logout)
 
 }
 func HealthCheck(ctx echo.Context) error {
@@ -49,11 +50,18 @@ func CreateLdapUser(ctx echo.Context) error {
 	}
 
 	//同步用户到mysql  用户表中
-	_, err := service.AddUser(models.User{UserName: req.Cn, Email: req.Mail})
+	uid, err := service.AddUser(models.User{UserName: req.Cn, Email: req.Mail})
 	if err != nil {
 		logs.GetLogger().Errorf("api AuthLdapUser AddUser is failed   err is %s\n", err.Error())
 		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 	}
+
+	//默认guest 权限
+	if err := service.CreateUserRoleRecord(models.UserRole{UserId: uid, RoleId: 5}); err != nil {
+		logs.GetLogger().Errorf("api AuthLdapUser CreateUserRoleRecord    err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
 
 	if len(req.Role) != 0 {
 		//todo add user role
@@ -92,6 +100,8 @@ func AuthLdapUser(ctx echo.Context) error {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
 	}
 
+	log.Printf("req is  %s\n", req)
+
 	//根据参数 查找LDAP 用户是否存在
 	result, err := db.GetLdap().SearchUser(req)
 	if err != nil {
@@ -99,9 +109,11 @@ func AuthLdapUser(ctx echo.Context) error {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapSearchUserFailed], consts.CodeLdapSearchUserFailed)
 	}
 
+	fmt.Printf("result is %v\n", result)
+	fmt.Printf("result len is %v\n", len(result.Entries))
 	//result 为空查询不到ldap用户 返回登录失败
 	if len(result.Entries) == 0 {
-		logs.GetLogger().Errorf("api AuthLdapUser SearchUser ldap  can't find user    err is %s\n", err.Error())
+		logs.GetLogger().Errorf("api AuthLdapUser SearchUser ldap  can't find user    err is", )
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapUserNotExist], consts.CodeLdapUserNotExist)
 	}
 
@@ -122,22 +134,28 @@ func AuthLdapUser(ctx echo.Context) error {
 	user, err := service.QueryUser(ldapUserInfo.Cn)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
+			uid, err := service.CreateUserRecord(models.User{UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail})
 			if err != nil {
-				logs.GetLogger().Errorf("api AuthLdapUser QueryUser user ErrRecordNotFound   err is %s\n", err.Error())
+				logs.GetLogger().Errorf("api AuthLdapUser CreateUserRecord    err is %s\n", err.Error())
+				return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+			}
+			user.Id = uid
+			user.UserName = ldapUserInfo.Cn
+			user.Email = ldapUserInfo.Mail
+
+			//每个用户给默认guest权限
+			if err := service.CreateUserRoleRecord(models.UserRole{UserId: user.Id, RoleId: 5}); err != nil {
+				logs.GetLogger().Errorf("api AuthLdapUser CreateUserRoleRecord    err is %s\n", err.Error())
 				return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 			}
 
 		}
-		logs.GetLogger().Errorf("api AuthLdapUser QueryUser is failed   err is %s\n", err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 	}
 
 	if ldapUserInfo.Mail != user.Email {
 		updates := map[string]interface{}{
 			"email": ldapUserInfo.Mail,
 		}
-
-		user.Email = ldapUserInfo.Mail
 
 		if err := service.UpdateUser(user.Id, updates); err != nil {
 			logs.GetLogger().Errorf("api AuthLdapUser UpdateUser is failed   err is %s\n", err.Error())
@@ -232,6 +250,17 @@ func QueryUserInfo(ctx echo.Context) error {
 
 }
 
+func Logout(ctx echo.Context) error {
 
+	token := ctx.Request().Header.Get("Authorization")
+
+	err := db.RedisDelKeys(token)
+	if err != nil {
+		return ErrorResp(ctx, consts.StatusText[consts.CodeUserDelTokenFailed], consts.CodeUserDelTokenFailed)
+	}
+
+	return SuccessResp(ctx, nil)
+
+}
 
 //todo 重置密码

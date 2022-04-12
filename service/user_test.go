@@ -246,3 +246,48 @@ func TestQueryApi(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateUserRecord(t *testing.T) {
+	type args struct {
+		user models.User
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    uint64
+		wantErr bool
+	}{
+		{name: "TestCreateUserRecord", args: args{user:models.User{UserName:"test7",Email:"test7@qq.com"}},wantErr:false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := CreateUserRecord(tt.args.user)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CreateUserRecord() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("got is : %+v", got)
+
+		})
+	}
+}
+
+func TestCreateUserRoleRecord(t *testing.T) {
+	type args struct {
+		userRole models.UserRole
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "TestCreateUserRoleRecord", args: args{userRole:models.UserRole{UserId:8,RoleId:5}},wantErr:false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CreateUserRoleRecord(tt.args.userRole); (err != nil) != tt.wantErr {
+				t.Errorf("CreateUserRoleRecord() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

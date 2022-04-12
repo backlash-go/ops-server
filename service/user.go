@@ -54,5 +54,15 @@ func QueryPermissionIdByRoleId(roleId []uint64) (permissionId []uint64, err erro
 func QueryApi(permissionId []uint64) (apis []string, err error) {
 	err = db.GetDB().Model(&models.Permission{}).Where("id in (?)", permissionId).Pluck("api", &apis).Error
 	return
+}
+
+func CreateUserRecord(user models.User) (uint64, error) {
+	err := db.GetDB().Model(&models.User{}).Create(&user).Error
+	return user.Id, err
+}
+
+func CreateUserRoleRecord(userRole models.UserRole) error {
+	err := db.GetDB().Model(&models.User{}).Create(&userRole).Error
+	return err
 
 }

@@ -156,3 +156,23 @@ func TestRedisHGetAll(t *testing.T) {
 		})
 	}
 }
+
+func TestRedisDelKeys(t *testing.T) {
+	type args struct {
+		key []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "TestRedisDelKeys", args: args{key: []string{"k5"}}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := RedisDelKeys(tt.args.key...); (err != nil) != tt.wantErr {
+				t.Errorf("RedisDelKeys() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
