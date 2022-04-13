@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"ops-server/db"
 	"ops-server/models"
 )
@@ -62,7 +63,20 @@ func CreateUserRecord(user models.User) (uint64, error) {
 }
 
 func CreateUserRoleRecord(userRole models.UserRole) error {
-	err := db.GetDB().Model(&models.User{}).Create(&userRole).Error
+	err := db.GetDB().Create(&userRole).Error
 	return err
+}
 
+func AddUserRoles() error {
+	//userRoles := make([]models.UserRole, 0, 0)
+	//for _, v := range roles {
+	//	userRole := models.UserRole{RoleId: v, UserId: uid}
+	//	userRoles = append(userRoles, userRole)
+	//}
+
+	var useRoles = []models.UserRole{{UserId:12,RoleId:4},{UserId:12,RoleId:5}}
+
+	fmt.Println(useRoles)
+	err := db.GetDB().Create(&useRoles).Error
+	return err
 }

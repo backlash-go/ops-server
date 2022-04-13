@@ -14,7 +14,7 @@ type CreateUserParams struct {
 	EmployeeType []string `json:"employee_type"`
 	DisplayName  string   `json:"display_name"`
 	UserPassword string   `json:"user_password"`
-	Role         []string `json:"role"`
+	Role         []uint64 `json:"role"`
 }
 
 type DeleteUserParams struct {

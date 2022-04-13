@@ -257,7 +257,7 @@ func TestCreateUserRecord(t *testing.T) {
 		want    uint64
 		wantErr bool
 	}{
-		{name: "TestCreateUserRecord", args: args{user:models.User{UserName:"test7",Email:"test7@qq.com"}},wantErr:false},
+		{name: "TestCreateUserRecord", args: args{user:models.User{UserName:"test98888",Email:"test98888@qq.com"}},wantErr:false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -281,12 +281,30 @@ func TestCreateUserRoleRecord(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "TestCreateUserRoleRecord", args: args{userRole:models.UserRole{UserId:8,RoleId:5}},wantErr:false},
+		{name: "TestCreateUserRoleRecord", args: args{userRole:models.UserRole{UserId:uint64(8),RoleId:uint64(3)}},wantErr:false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := CreateUserRoleRecord(tt.args.userRole); (err != nil) != tt.wantErr {
 				t.Errorf("CreateUserRoleRecord() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+
+
+func TestAddUserRoles1(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{name: "TestAddUserRoles1",wantErr:false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := AddUserRoles(); (err != nil) != tt.wantErr {
+				t.Errorf("AddUserRoles() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
