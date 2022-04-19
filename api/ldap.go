@@ -23,6 +23,7 @@ func OperateLdap(g *echo.Group) {
 	g.GET("/health", HealthCheck)
 	g.GET("/user/info", QueryUserInfo)
 	g.POST("/user/logout", Logout)
+	g.GET("/user/list-info", GetLdapUsersListInfo)
 
 }
 func HealthCheck(ctx echo.Context) error {
@@ -46,25 +47,29 @@ func CreateLdapUser(ctx echo.Context) error {
 
 	if err := db.GetLdap().CreateUser(req); err != nil {
 		logs.GetLogger().Errorf("CreateUser is failed err is %s\n", err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapCreateUserFailed], consts.CodeLdapCreateUserFailed)
+		return ErrorResp(ctx, err.Error(), consts.CodeLdapCreateUserFailed)
 	}
 
 	//同步用户到mysql  用户表中
-	uid, err := service.AddUser(models.User{UserName: req.Cn, Email: req.Mail})
+	uid, err := service.AddUser(models.User{UserName: req.Cn, Email: req.Mail, DisplayName: req.DisplayName})
 	if err != nil {
-		logs.GetLogger().Errorf("api AuthLdapUser AddUser is failed   err is %s\n", err.Error())
+		logs.GetLogger().Errorf("api CreateLdapUser AddUser is failed   err is %s\n", err.Error())
 		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 	}
 
 	//默认guest 权限
 	if err := service.CreateUserRoleRecord(models.UserRole{UserId: uid, RoleId: 5}); err != nil {
-		logs.GetLogger().Errorf("api AuthLdapUser CreateUserRoleRecord    err is %s\n", err.Error())
+		logs.GetLogger().Errorf("api CreateLdapUser CreateUserRoleRecord    err is %s\n", err.Error())
 		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 	}
 
-
 	if len(req.Role) != 0 {
 		//todo add user role
+
+		if err := service.AddUserRoles(uid, req.Role); err != nil {
+			logs.GetLogger().Errorf("api CreateLdapUser  AddUserRoles   err is %s\n", err.Error())
+			return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+		}
 	}
 
 	return SuccessResp(ctx, nil)
@@ -79,14 +84,20 @@ func DeleteLdapUser(ctx echo.Context) error {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
 	}
 
-	if req.Dn == "" {
-		logs.GetLogger().Errorf("DeleteLdapUser req.Dn is null   req is %s\n", req)
+	if req.Cn == "" {
+		logs.GetLogger().Errorf("DeleteLdapUser req.Cn is null   req is %s\n", req)
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
 	}
 
-	if err := db.GetLdap().DeleteUser(req); err != nil {
+	Dn := fmt.Sprintf("cn=%s,ou=person,dc=langzhihe,dc=com", req.Cn)
+
+	if err := db.GetLdap().DeleteUser(Dn); err != nil {
 		logs.GetLogger().Errorf("DeleteUser is failed err is %s\n", err.Error())
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapDeleteUserFailed], consts.CodeLdapDeleteUserFailed)
+	}
+
+	if err := service.DeleteUser(req.Cn); err != nil {
+
 	}
 
 	return SuccessResp(ctx, nil)
@@ -127,6 +138,11 @@ func AuthLdapUser(ctx echo.Context) error {
 		if v.Name == "mail" {
 			ldapUserInfo.Mail = result.Entries[0].Attributes[k].Values[0]
 		}
+
+		if v.Name == "displayName" {
+			ldapUserInfo.DisPlayName = result.Entries[0].Attributes[k].Values[0]
+
+		}
 	}
 
 	fmt.Printf("cn is : %v\n", ldapUserInfo)
@@ -134,7 +150,7 @@ func AuthLdapUser(ctx echo.Context) error {
 	user, err := service.QueryUser(ldapUserInfo.Cn)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			uid, err := service.CreateUserRecord(models.User{UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail})
+			uid, err := service.CreateUserRecord(models.User{UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail, DisplayName: ldapUserInfo.DisPlayName})
 			if err != nil {
 				logs.GetLogger().Errorf("api AuthLdapUser CreateUserRecord    err is %s\n", err.Error())
 				return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
@@ -142,6 +158,7 @@ func AuthLdapUser(ctx echo.Context) error {
 			user.Id = uid
 			user.UserName = ldapUserInfo.Cn
 			user.Email = ldapUserInfo.Mail
+			user.DisplayName = ldapUserInfo.DisPlayName
 
 			//每个用户给默认guest权限
 			if err := service.CreateUserRoleRecord(models.UserRole{UserId: user.Id, RoleId: 5}); err != nil {
@@ -152,9 +169,10 @@ func AuthLdapUser(ctx echo.Context) error {
 		}
 	}
 
-	if ldapUserInfo.Mail != user.Email {
+	if ldapUserInfo.Mail != user.Email || ldapUserInfo.DisPlayName != user.DisplayName {
 		updates := map[string]interface{}{
-			"email": ldapUserInfo.Mail,
+			"email":        ldapUserInfo.Mail,
+			"display_name": ldapUserInfo.DisPlayName,
 		}
 
 		if err := service.UpdateUser(user.Id, updates); err != nil {
@@ -260,6 +278,62 @@ func Logout(ctx echo.Context) error {
 	}
 
 	return SuccessResp(ctx, nil)
+
+}
+
+func GetLdapUsersListInfo(ctx echo.Context) error {
+	req := &entity.UserInfoListRequest{}
+	if err := ctx.Bind(req); err != nil {
+		logs.GetLogger().Errorf("GetLdapUsersListInfo req is failed reqParams is %s  err is %s\n", req, err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 10
+	}
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	fmt.Printf("req is %+v\n", req)
+
+	usersListInfo, totalCount, err := service.QueryUserList(req)
+	if err != nil {
+		logs.GetLogger().Errorf("QueryUserList req is failed  is  err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	usersID := make([]uint64, 0, 0)
+
+	for _, v := range usersListInfo {
+		usersID = append(usersID, v.Id)
+	}
+
+	userMappingRole, err := service.QueryUserListAndRoles(usersID)
+
+	if err != nil {
+		logs.GetLogger().Errorf("QueryUserListAndRoles req is failed  is  err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	m1 := make(map[uint64]string)
+	for _, v := range userMappingRole {
+		m1[v.UserId] = v.Role
+	}
+
+	resp := &entity.UserInfoListResponse{}
+
+	for _, v := range usersListInfo {
+		resp.Items = append(resp.Items, entity.UserList{
+			Id:          v.Id,
+			UserName:    v.UserName,
+			Email:       v.Email,
+			DisplayName: v.DisplayName,
+			Role:        m1[v.Id],
+			CreatedAt:   v.CreatedAt,
+		})
+	}
+	resp.TotalCount = totalCount
+
+	return SuccessResp(ctx, resp)
 
 }
 

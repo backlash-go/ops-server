@@ -86,9 +86,12 @@ func TestLdap_SearchUser(t *testing.T) {
 				t.Errorf("SearchUser() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			fmt.Println(got.Entries[0].Attributes)
 
- 			for _, v := range got.Entries[0].Attributes {
-                 fmt.Println(v.Values)
+ 			for k, v := range got.Entries[0].Attributes {
+				fmt.Println(k)
+
+				fmt.Println(v.Values)
 			}
 		})
 	}

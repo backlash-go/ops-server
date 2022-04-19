@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"ops-server/db"
+	"ops-server/entity"
 	"ops-server/models"
 )
 
@@ -12,8 +13,50 @@ import (
 //	return
 //}
 
-func QueryAllUser(userName string) (user []models.User, err error) {
+func DeleteUser(cn string) error {
+	err := db.GetDB().Where("user_name = ?", cn).Delete(&models.User{}).Error
+	return err
+}
 
+func QueryUserListAndRoles(userID []uint64) (userRole []entity.UserIDRoleContact, err error) {
+
+	//sql := `SELECT user_id, group_concat(distinct role_name) as role FROM ops.user_role join ops.role on ops.user_role.role_id = ops.role.id   group by user_id`
+
+	err = db.GetDB().Model(&models.UserRole{}).Select("user_id, group_concat(distinct role_name) as role").
+		Joins("join role on user_role.role_id = role.id").Group("user_id").Having("user_id in (?)", userID).Scan(&userRole).Error
+	return
+}
+
+func QueryUserList(req *entity.UserInfoListRequest) (users []entity.UserList, totalCount int64, err error) {
+
+	fmt.Println(req.SearchName)
+
+	if len(req.SearchName) > 0 {
+		err = db.GetDB().Model(&models.User{}).Offset(req.PageSize*(req.Page-1)).Limit(req.PageSize).Where("user_name LIKE ?", "%"+req.SearchName+"%").Scan(&users).Error
+		if err != nil {
+			return
+		}
+
+		err = db.GetDB().Model(&models.User{}).Where("user_name LIKE ?", "%"+req.SearchName+"%").Count(&totalCount).Error
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	err = db.GetDB().Model(&models.User{}).Count(&totalCount).Error
+	if err != nil {
+		return
+	}
+
+	err = db.GetDB().Model(&models.User{}).Offset(req.PageSize * (req.Page - 1)).Limit(req.PageSize).Scan(&users).Error
+	if err != nil {
+		return
+	}
+	return
+}
+
+func QueryAllUser(userName string) (user []models.User, err error) {
 	err = db.GetDB().Model(&models.User{}).Where("user_name = ?", userName).Find(&user).Error
 	return
 }
@@ -23,8 +66,8 @@ func QueryUser(cn string) (user models.User, err error) {
 	return
 }
 
-func UpdateUser(userId uint64, updates interface{}) error {
-	return db.GetDB().Model(&models.User{}).Where("id = ?", userId).Update(updates).Error
+func UpdateUser(userId uint64, updates map[string]interface{}) error {
+	return db.GetDB().Model(&models.User{}).Where("id = ?", userId).Updates(updates).Error
 }
 
 func AddUser(req models.User) (uint64, error) {
@@ -67,16 +110,12 @@ func CreateUserRoleRecord(userRole models.UserRole) error {
 	return err
 }
 
-func AddUserRoles() error {
-	//userRoles := make([]models.UserRole, 0, 0)
-	//for _, v := range roles {
-	//	userRole := models.UserRole{RoleId: v, UserId: uid}
-	//	userRoles = append(userRoles, userRole)
-	//}
-
-	var useRoles = []models.UserRole{{UserId:12,RoleId:4},{UserId:12,RoleId:5}}
-
-	fmt.Println(useRoles)
-	err := db.GetDB().Create(&useRoles).Error
+func AddUserRoles(uid uint64, roles []uint64) error {
+	userRoles := make([]models.UserRole, 0, 0)
+	for _, v := range roles {
+		userRole := models.UserRole{RoleId: v, UserId: uid}
+		userRoles = append(userRoles, userRole)
+	}
+	err := db.GetDB().Model(&models.UserRole{}).Create(&userRoles).Error
 	return err
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"ops-server/entity"
 	"ops-server/models"
 	"testing"
 )
@@ -33,34 +34,7 @@ func TestQueryUser(t *testing.T) {
 	}
 }
 
-func TestUpdateUser(t *testing.T) {
-	type args struct {
-		userId  uint64
-		updates interface{}
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
 
-		{
-			name: "TestQueryUser",
-			args: args{userId: 1, updates: map[string]interface{}{
-				"email": "xixianbin11@qq.com",
-			}},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := UpdateUser(tt.args.userId, tt.args.updates); (err != nil) != tt.wantErr {
-				t.Errorf("UpdateUser() error = %v, wantErr %v", err, tt.wantErr)
-			}
-
-		})
-	}
-}
 
 func TestAddUser(t *testing.T) {
 	type args struct {
@@ -294,17 +268,139 @@ func TestCreateUserRoleRecord(t *testing.T) {
 
 
 
-func TestAddUserRoles1(t *testing.T) {
+
+
+func TestUpdateUser(t *testing.T) {
+	type args struct {
+		userId  uint64
+		updates map[string]interface{}
+	}
 	tests := []struct {
 		name    string
+		args    args
 		wantErr bool
 	}{
-		{name: "TestAddUserRoles1",wantErr:false},
+		{
+			name: "TestQueryUser",
+			args: args{userId: 1, updates: map[string]interface{}{
+				"email": "xixianbin11@qq.com",
+			}},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := AddUserRoles(); (err != nil) != tt.wantErr {
+			if err := UpdateUser(tt.args.userId, tt.args.updates); (err != nil) != tt.wantErr {
+				t.Errorf("UpdateUser() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAddUserRoles(t *testing.T) {
+	type args struct {
+		uid   uint64
+		roles []uint64
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestAddUserRoles",
+			args: args{uid: 14,roles:[]uint64{4,5}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := AddUserRoles(tt.args.uid, tt.args.roles); (err != nil) != tt.wantErr {
 				t.Errorf("AddUserRoles() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestQueryUserList(t *testing.T) {
+	type args struct {
+		req *entity.UserInfoListRequest
+	}
+	tests := []struct {
+		name           string
+		args           args
+		wantTotalCount int64
+		wantErr        bool
+	}{
+		{
+			name: "TestQueryUserList",
+			args: args{req:&entity.UserInfoListRequest{PageSize:5,Page:2}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotUsers, gotTotalCount, err := QueryUserList(tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryUserList() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("gotUsers is : %+v", gotUsers)
+			fmt.Printf("gotTotalCount is : %+v", gotTotalCount)
+
+
+		})
+	}
+}
+
+func TestQueryUserListAndRoles(t *testing.T) {
+	type args struct {
+		userID []uint64
+	}
+	tests := []struct {
+		name         string
+		args         args
+		wantUserRole []entity.UserIDRoleContact
+		wantErr      bool
+	}{
+		{
+			name: "TestQueryUserList",
+			args: args{userID:[]uint64{2,8,9,12}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotUserRole, err := QueryUserListAndRoles(tt.args.userID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryUserListAndRoles() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Printf("gotUserRole is %+v\n", gotUserRole)
+
+		})
+	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	type args struct {
+		cn string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestDeleteUser",
+			args: args{cn:"deleteTest"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DeleteUser(tt.args.cn); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteUser() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

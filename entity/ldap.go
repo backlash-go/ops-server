@@ -18,7 +18,7 @@ type CreateUserParams struct {
 }
 
 type DeleteUserParams struct {
-	Dn string `json:"dn"`
+	Cn string `json:"cn"`
 }
 
 type AuthUserParams struct {
@@ -27,16 +27,17 @@ type AuthUserParams struct {
 }
 
 type LoginAuthResp struct {
-	Token    string `json:"token"`
-	UserId   uint64 `json:"user_id"`
-	UserName string `json:"user_name"`
-	Email    string `json:"email"`
+	Token    string   `json:"token"`
+	UserId   uint64   `json:"user_id"`
+	UserName string   `json:"user_name"`
+	Email    string   `json:"email"`
 	Role     []string `json:"role"`
 }
 
 type LdapUserInfo struct {
-	Cn   string
-	Mail string
+	Cn          string
+	Mail        string
+	DisPlayName string
 }
 
 type Ldap struct {
@@ -49,7 +50,7 @@ func (l *Ldap) SearchUser(u *AuthUserParams) (*ldap.SearchResult, error) {
 		"dc=langzhihe,dc=com",
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(userPassword=%s)(cn=%s))", u.UserPassword, u.Cn),
-		[]string{"dn", "mail", "sn", "givenName", "cn"},
+		[]string{"dn", "mail", "sn", "givenName", "cn", "displayName"},
 		nil,
 	)
 
@@ -103,8 +104,6 @@ func (l *Ldap) CreateUser(p *CreateUserParams) error {
 			Vals: []string{p.DisplayName},
 		}}
 
-
-
 	addRequest.Attributes = attr
 	err := l.Client.Add(addRequest)
 
@@ -117,9 +116,9 @@ func (l *Ldap) CreateUser(p *CreateUserParams) error {
 
 }
 
-func (l *Ldap) DeleteUser(p *DeleteUserParams) error {
+func (l *Ldap) DeleteUser(p string) error {
 
-	delRequest := ldap.NewDelRequest(p.Dn, nil)
+	delRequest := ldap.NewDelRequest(p, nil)
 	err := l.Client.Del(delRequest)
 	if err != nil {
 		return err
