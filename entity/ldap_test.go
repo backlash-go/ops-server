@@ -96,3 +96,31 @@ func TestLdap_SearchUser(t *testing.T) {
 		})
 	}
 }
+
+func TestLdap_ModifyUserPassword(t *testing.T) {
+	type args struct {
+		newPass string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestLdap_ModifyUserPassword",
+			args:args{newPass:"xixianbin222"},
+			wantErr:false,
+
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := &Ldap{
+				Client: L,
+			}
+			if err := l.ModifyUserPassword(tt.args.newPass); (err != nil) != tt.wantErr {
+				t.Errorf("ModifyUserPassword() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

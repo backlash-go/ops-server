@@ -16,6 +16,8 @@ const (
 
 	CodeUserNoApiPermission = 30009
 
+	CodeUserPasswordModifyFailed = 30010
+
 	CodeNeedLogin = 40003
 
 	CodeInternalServerError = 50000
@@ -33,4 +35,5 @@ var StatusText = map[int]string{
 	CodeUserNoAssignRole:     "用户没有分配角色",
 	CodeUserNoApiPermission:  "接口没有权限",
 	CodeUserDelTokenFailed:   "删除TOKEN失败",
+	CodeUserPasswordModifyFailed: "修改密码失败",
 }

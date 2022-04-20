@@ -21,12 +21,12 @@ type UserInfo struct {
 
 //分页查询用户
 type UserList struct {
-	Id          uint64     `gorm:"column:id" form:"id" json:"id"`
-	UserName    string     `gorm:"column:user_name" form:"user_name" json:"user_name"`
-	Email       string     `gorm:"column:email", form:"email",json:"email"`
-	DisplayName string     `gorm:"column:display_name", form:"display_name",json:"display_name"`
-	Role        string     `gorm:"column:role", form:"role",json:"role"`
-	CreatedAt   *time.Time `gorm:"column:created_at" form:"created_at" json:"created_at"`
+	Id          uint64    `json:"id"`
+	UserName    string    `json:"user_name"`
+	Email       string    `json:"email"`
+	DisplayName string    `json:"display_name"`
+	Role        string    `json:"role"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type UserInfoListRequest struct {

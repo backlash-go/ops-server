@@ -17,6 +17,11 @@ type CreateUserParams struct {
 	Role         []uint64 `json:"role"`
 }
 
+type ModifyUserPassword struct {
+	Password string `json:"password"`
+	Cn       string `json:"cn"`
+}
+
 type DeleteUserParams struct {
 	Cn string `json:"cn"`
 }
@@ -50,7 +55,7 @@ func (l *Ldap) SearchUser(u *AuthUserParams) (*ldap.SearchResult, error) {
 		"dc=langzhihe,dc=com",
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(userPassword=%s)(cn=%s))", u.UserPassword, u.Cn),
-		[]string{"dn", "mail", "sn", "givenName", "cn", "displayName"},
+		[]string{"dn", "mail", "sn", "givenName", "cn", "displayName", "employeeType", "objectClass", "userPassword"},
 		nil,
 	)
 
@@ -125,4 +130,21 @@ func (l *Ldap) DeleteUser(p string) error {
 	}
 
 	return nil
+}
+
+func (l *Ldap) ModifyUserPassword(req *ModifyUserPassword) error {
+
+	dn := fmt.Sprintf("cn=%s,ou=person,dc=langzhihe,dc=com", req.Cn)
+
+	modifyRequest := ldap.NewModifyRequest(dn)
+	modifyRequest.Replace("userPassword", []string{req.Password})
+
+	err := l.Client.Modify(modifyRequest)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }

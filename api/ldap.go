@@ -24,10 +24,36 @@ func OperateLdap(g *echo.Group) {
 	g.GET("/user/info", QueryUserInfo)
 	g.POST("/user/logout", Logout)
 	g.GET("/user/list-info", GetLdapUsersListInfo)
+	g.POST("/user/modify-password", ModifyUserPassword)
 
 }
+
 func HealthCheck(ctx echo.Context) error {
 	return SuccessResp(ctx, nil)
+}
+
+func ModifyUserPassword(ctx echo.Context) error {
+	req := new(entity.ModifyUserPassword)
+	if err := ctx.Bind(req); err != nil {
+		logs.GetLogger().Errorf("ModifyUserPassword req is failed reqParams is %s  err is %s\n", req, err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+	}
+
+	fmt.Println(req)
+	if req.Password == "" || req.Cn == "" {
+		logs.GetLogger().Errorf("ModifyUserPassword  req is null is null   req is %v\n", req)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+	}
+
+	err := db.GetLdap().ModifyUserPassword(req)
+
+	if err != nil {
+		logs.GetLogger().Errorf("GetLdap ModifyUserPassword is failed %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeUserPasswordModifyFailed], consts.CodeUserPasswordModifyFailed)
+	}
+
+	return SuccessResp(ctx, nil)
+
 }
 
 func CreateLdapUser(ctx echo.Context) error {
@@ -97,7 +123,8 @@ func DeleteLdapUser(ctx echo.Context) error {
 	}
 
 	if err := service.DeleteUser(req.Cn); err != nil {
-
+		logs.GetLogger().Errorf("service DeleteUser   failed  is  err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 	}
 
 	return SuccessResp(ctx, nil)

@@ -43,6 +43,7 @@ func BeforeRequestValidate(next echo.HandlerFunc) echo.HandlerFunc {
         //判断用户 是否有角色
 		value, ok := userMap["roles"]
 
+		fmt.Printf("role is %s\n", value)
 		//如果有角色
 		if ok {
 			for _, v := range strings.Split(value, ",") {
