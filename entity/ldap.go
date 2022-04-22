@@ -37,12 +37,14 @@ type LoginAuthResp struct {
 	UserName string   `json:"user_name"`
 	Email    string   `json:"email"`
 	Role     []string `json:"role"`
+	EmployeeType string `json:"employee_type"`
 }
 
 type LdapUserInfo struct {
-	Cn          string
-	Mail        string
-	DisPlayName string
+	Cn           string
+	Mail         string
+	DisPlayName  string
+	EmployeeType []string
 }
 
 type Ldap struct {

@@ -77,7 +77,7 @@ func CreateLdapUser(ctx echo.Context) error {
 	}
 
 	//同步用户到mysql  用户表中
-	uid, err := service.AddUser(models.User{UserName: req.Cn, Email: req.Mail, DisplayName: req.DisplayName})
+	uid, err := service.AddUser(models.User{UserName: req.Cn, Email: req.Mail, DisplayName: req.DisplayName, EmployeeType: strings.Join(req.EmployeeType, ",")})
 	if err != nil {
 		logs.GetLogger().Errorf("api CreateLdapUser AddUser is failed   err is %s\n", err.Error())
 		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
@@ -168,7 +168,10 @@ func AuthLdapUser(ctx echo.Context) error {
 
 		if v.Name == "displayName" {
 			ldapUserInfo.DisPlayName = result.Entries[0].Attributes[k].Values[0]
+		}
 
+		if v.Name == "employeeType" {
+			ldapUserInfo.EmployeeType = result.Entries[0].Attributes[k].Values
 		}
 	}
 
@@ -177,7 +180,7 @@ func AuthLdapUser(ctx echo.Context) error {
 	user, err := service.QueryUser(ldapUserInfo.Cn)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			uid, err := service.CreateUserRecord(models.User{UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail, DisplayName: ldapUserInfo.DisPlayName})
+			uid, err := service.CreateUserRecord(models.User{UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail, DisplayName: ldapUserInfo.DisPlayName, EmployeeType: strings.Join(ldapUserInfo.EmployeeType, ",")})
 			if err != nil {
 				logs.GetLogger().Errorf("api AuthLdapUser CreateUserRecord    err is %s\n", err.Error())
 				return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
@@ -186,6 +189,7 @@ func AuthLdapUser(ctx echo.Context) error {
 			user.UserName = ldapUserInfo.Cn
 			user.Email = ldapUserInfo.Mail
 			user.DisplayName = ldapUserInfo.DisPlayName
+			user.EmployeeType = strings.Join(ldapUserInfo.EmployeeType, ",")
 
 			//每个用户给默认guest权限
 			if err := service.CreateUserRoleRecord(models.UserRole{UserId: user.Id, RoleId: 5}); err != nil {
@@ -196,10 +200,11 @@ func AuthLdapUser(ctx echo.Context) error {
 		}
 	}
 
-	if ldapUserInfo.Mail != user.Email || ldapUserInfo.DisPlayName != user.DisplayName {
+	if ldapUserInfo.Mail != user.Email || ldapUserInfo.DisPlayName != user.DisplayName || strings.Join(ldapUserInfo.EmployeeType, ",") != user.EmployeeType {
 		updates := map[string]interface{}{
-			"email":        ldapUserInfo.Mail,
-			"display_name": ldapUserInfo.DisPlayName,
+			"email":         ldapUserInfo.Mail,
+			"display_name":  ldapUserInfo.DisPlayName,
+			"employee_type": strings.Join(ldapUserInfo.EmployeeType, ","),
 		}
 
 		if err := service.UpdateUser(user.Id, updates); err != nil {
@@ -232,6 +237,7 @@ func AuthLdapUser(ctx echo.Context) error {
 	tmpMap["user_id"] = user.Id
 	tmpMap["user_name"] = user.UserName
 	tmpMap["email"] = user.Email
+	tmpMap["employee_type"] = user.EmployeeType
 
 	if len(roleNames) != 0 {
 		tmpMap["roles"] = strings.Join(roleNames, ",")
@@ -248,11 +254,12 @@ func AuthLdapUser(ctx echo.Context) error {
 	}
 
 	resp := entity.LoginAuthResp{
-		Token:    token,
-		UserId:   user.Id,
-		UserName: user.UserName,
-		Email:    user.Email,
-		Role:     roleNames,
+		Token:        token,
+		UserId:       user.Id,
+		UserName:     user.UserName,
+		Email:        user.Email,
+		Role:         roleNames,
+		EmployeeType: user.EmployeeType,
 	}
 
 	return SuccessResp(ctx, resp)
@@ -274,21 +281,23 @@ func QueryUserInfo(ctx echo.Context) error {
 	if ok {
 		roles := strings.Split(v, ",")
 		resp := entity.UserInfo{
-			Token:    token,
-			UserId:   userMapInfo["user_id"],
-			UserName: userMapInfo["user_name"],
-			Email:    userMapInfo["email"],
-			Role:     roles,
+			Token:        token,
+			UserId:       userMapInfo["user_id"],
+			UserName:     userMapInfo["user_name"],
+			Email:        userMapInfo["email"],
+			Role:         roles,
+			EmployeeType: userMapInfo["employee_type"],
 		}
 		return SuccessResp(ctx, resp)
 
 	}
 
 	resp := entity.UserInfo{
-		Token:    token,
-		UserId:   userMapInfo["user_id"],
-		UserName: userMapInfo["user_name"],
-		Email:    userMapInfo["email"],
+		Token:        token,
+		UserId:       userMapInfo["user_id"],
+		UserName:     userMapInfo["user_name"],
+		Email:        userMapInfo["email"],
+		EmployeeType: userMapInfo["employee_type"],
 	}
 
 	return SuccessResp(ctx, resp)
@@ -350,12 +359,13 @@ func GetLdapUsersListInfo(ctx echo.Context) error {
 
 	for _, v := range usersListInfo {
 		resp.Items = append(resp.Items, entity.UserList{
-			Id:          v.Id,
-			UserName:    v.UserName,
-			Email:       v.Email,
-			DisplayName: v.DisplayName,
-			Role:        m1[v.Id],
-			CreatedAt:   v.CreatedAt,
+			Id:           v.Id,
+			UserName:     v.UserName,
+			Email:        v.Email,
+			DisplayName:  v.DisplayName,
+			Role:         m1[v.Id],
+			EmployeeType: v.EmployeeType,
+			CreatedAt:    v.CreatedAt,
 		})
 	}
 	resp.TotalCount = totalCount

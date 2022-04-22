@@ -393,7 +393,7 @@ func TestDeleteUser(t *testing.T) {
 	}{
 		{
 			name: "TestDeleteUser",
-			args: args{cn:"deleteTest"},
+			args: args{cn:"test98888"},
 			wantErr: false,
 		},
 	}
