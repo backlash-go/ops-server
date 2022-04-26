@@ -72,7 +72,7 @@ func TestLdap_SearchUser(t *testing.T) {
 	}{
 		{
 			name: "searchUser",
-			args: &AuthUserParams{UserPassword: "xixianbin520", Cn: "xixb"},
+			args: &AuthUserParams{UserPassword: "ldapt1", Cn: "ldapt1"},
 
 		},
 	}
@@ -125,3 +125,37 @@ func TestLdap_SearchUser(t *testing.T) {
 //		})
 //	}
 //}
+
+func TestLdap_ModifyUserInfo(t *testing.T) {
+
+	type args struct {
+		req *LdapUserInfo
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestLdap_ModifyUserInfo",
+			args: args{req:&LdapUserInfo{
+				Mail: "ldapt11111@qq.com",
+				DisPlayName: "ldapt1@qq.com",
+				EmployeeType: []string{"go","java"},
+				Cn:"ldapt1",
+			}},
+			wantErr:false,
+
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := &Ldap{
+				Client: L,
+			}
+			if err := l.ModifyUserInfo(tt.args.req); (err != nil) != tt.wantErr {
+				t.Errorf("ModifyUserInfo() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

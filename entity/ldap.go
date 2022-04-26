@@ -32,19 +32,21 @@ type AuthUserParams struct {
 }
 
 type LoginAuthResp struct {
-	Token    string   `json:"token"`
-	UserId   uint64   `json:"user_id"`
-	UserName string   `json:"user_name"`
-	Email    string   `json:"email"`
-	Role     []string `json:"role"`
-	EmployeeType string `json:"employee_type"`
+	Token        string   `json:"token"`
+	UserId       uint64   `json:"user_id"`
+	UserName     string   `json:"user_name"`
+	Email        string   `json:"email"`
+	Role         []string `json:"role"`
+	EmployeeType string   `json:"employee_type"`
+	DisplayName  string   `json:"display_name"`
 }
 
 type LdapUserInfo struct {
-	Cn           string
-	Mail         string
-	DisPlayName  string
-	EmployeeType []string
+	Cn           string   `json:"cn" query:"cn"`
+	Mail         string   `json:"mail" query:"mail"`
+	DisPlayName  string   `json:"display_name" query:"display_name"`
+	EmployeeType []string `json:"employee_type" query:"employee_type"`
+	Role         []string `json:"role" query:"role"`
 }
 
 type Ldap struct {
@@ -146,7 +148,23 @@ func (l *Ldap) ModifyUserPassword(req *ModifyUserPassword) error {
 	if err != nil {
 		return err
 	}
+	return nil
 
+}
+
+func (l *Ldap) ModifyUserInfo(req *LdapUserInfo) error {
+
+	dn := fmt.Sprintf("cn=%s,ou=person,dc=langzhihe,dc=com", req.Cn)
+
+	modifyRequest := ldap.NewModifyRequest(dn)
+
+	modifyRequest.ReplaceAttributes = []ldap.PartialAttribute{{Type: "mail", Vals: append(ldap.PartialAttribute{}.Vals, req.Mail)},
+		{Type: "displayName", Vals: append(ldap.PartialAttribute{}.Vals, req.DisPlayName)}, {Type: "employeeType", Vals: req.EmployeeType},}
+	err := l.Client.Modify(modifyRequest)
+
+	if err != nil {
+		return err
+	}
 	return nil
 
 }

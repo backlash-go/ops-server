@@ -18,6 +18,7 @@ type UserInfo struct {
 	Email        string   `json:"email"`
 	Role         []string `json:"role"`
 	EmployeeType string   `json:"employee_type"`
+	DisplayName  string   `json:"display_name"`
 }
 
 //分页查询用户

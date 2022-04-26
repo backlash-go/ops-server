@@ -405,3 +405,27 @@ func TestDeleteUser(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteUserById(t *testing.T) {
+	type args struct {
+		Id uint64
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestDeleteUserById",
+			args: args{Id:6},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DeleteUserById(tt.args.Id); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteUserById() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

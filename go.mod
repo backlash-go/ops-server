@@ -3,9 +3,7 @@ module ops-server
 go 1.14
 
 require (
-	github.com/garyburd/redigo v1.6.3 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/jinzhu/gorm v1.9.16
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/labstack/echo/v4 v4.7.0
 	github.com/mattn/go-sqlite3 v1.14.12 // indirect

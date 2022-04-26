@@ -18,6 +18,13 @@ func DeleteUser(cn string) error {
 	return err
 }
 
+func DeleteUserById(Id uint64) error {
+	err := db.GetDB().Where("user_id = ?", Id).Delete(&models.UserRole{}).Error
+	return err
+}
+
+
+
 func QueryUserListAndRoles(userID []uint64) (userRole []entity.UserIDRoleContact, err error) {
 
 	//sql := `SELECT user_id, group_concat(distinct role_name) as role FROM ops.user_role join ops.role on ops.user_role.role_id = ops.role.id   group by user_id`

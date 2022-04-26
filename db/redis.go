@@ -91,5 +91,19 @@ func RedisKeyIsExist(token string) (int64, error) {
 func RedisDelKeys(key ...string) error {
 	err := RDClient.Del(key...).Err()
 	return err
+}
 
+func RedisGet(key string) (string, error) {
+	result, err := RDClient.Get(key).Result()
+	if err == redis.Nil {
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+	return result, nil
+}
+
+//
+func RedisSet(key string, value interface{}, ex time.Duration) error {
+	return RDClient.Set(key, value, ex).Err()
 }

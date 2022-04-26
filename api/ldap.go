@@ -2,9 +2,9 @@ package api
 
 import (
 	"fmt"
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/xid"
+	"gorm.io/gorm"
 	"log"
 	"ops-server/consts"
 	"ops-server/db"
@@ -12,6 +12,7 @@ import (
 	"ops-server/logs"
 	"ops-server/models"
 	"ops-server/service"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,14 +23,131 @@ func OperateLdap(g *echo.Group) {
 	g.POST("/user/login", AuthLdapUser)
 	g.GET("/health", HealthCheck)
 	g.GET("/user/info", QueryUserInfo)
+	g.GET("/user/modify/info", QueryUserModifyInfo)
 	g.POST("/user/logout", Logout)
 	g.GET("/user/list-info", GetLdapUsersListInfo)
 	g.POST("/user/modify-password", ModifyUserPassword)
+	g.POST("/user/modify/userInfo", UpdateUserModifyInfo)
 
 }
 
 func HealthCheck(ctx echo.Context) error {
 	return SuccessResp(ctx, nil)
+}
+
+func UpdateUserModifyInfo(ctx echo.Context) error {
+	req := new(entity.LdapUserInfo)
+	if err := ctx.Bind(req); err != nil {
+		logs.GetLogger().Errorf("UpdateUserModifyInfo req is failed reqParams is %s  err is %s\n", req, err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+	}
+
+	user, err := service.QueryUser(req.Cn)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			logs.GetLogger().Errorf("api UpdateUserModifyInfo QueryUser     err is %s\n", err.Error())
+			return ErrorResp(ctx, consts.StatusText[consts.CodeQueryUserNotExist], consts.CodeQueryUserNotExist)
+		}
+		logs.GetLogger().Errorf("api UpdateUserModifyInfo QueryUser    err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	if err := db.GetLdap().ModifyUserInfo(req); err != nil {
+		logs.GetLogger().Errorf("GetLdap ModifyUserInfo is failed %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeUserInfoModifyFailed], consts.CodeUserInfoModifyFailed)
+	}
+
+	updates := map[string]interface{}{
+		"email":         req.Mail,
+		"display_name":  req.DisPlayName,
+		"employee_type": strings.Join(req.EmployeeType, ","),
+	}
+
+	if err := service.UpdateUser(user.Id, updates); err != nil {
+		logs.GetLogger().Errorf("api UpdateUserModifyInfo UpdateUser is failed   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	if err := service.DeleteUserById(user.Id); err != nil {
+		logs.GetLogger().Errorf("UpdateUserModifyInfo service DeleteUserById   failed  is  err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	roleIDs, err := service.QueryUserRoleIdByRoleName(req.Role)
+
+	if err != nil {
+		logs.GetLogger().Errorf("UpdateUserModifyInfo service.QueryUserRoleIdByRoleName   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	if err := service.AddUserRoles(user.Id, roleIDs); err != nil {
+		logs.GetLogger().Errorf("api UpdateUserModifyInfo  AddUserRoles   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	value, err := db.RedisGet(user.UserName)
+
+	if err != nil {
+		logs.GetLogger().Errorf("api UpdateUserModifyInfo  AddUserRoles   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	if len(value) == 0 {
+		return SuccessResp(ctx, nil)
+	}
+
+	//如果用户登录中  清除用户TOKEN
+
+	if err := db.RedisDelKeys(value,user.UserName); err != nil {
+		logs.GetLogger().Errorf("api UpdateUserModifyInfo  AddUserRoles   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	return SuccessResp(ctx, nil)
+
+}
+
+func QueryUserModifyInfo(ctx echo.Context) error {
+	req := new(entity.LdapUserInfo)
+
+	fmt.Println(req)
+	if err := ctx.Bind(req); err != nil {
+		logs.GetLogger().Errorf("QueryUserModifyInfo req is failed reqParams is %s  err is %s\n", req, err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+	}
+	user, err := service.QueryUser(req.Cn)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			logs.GetLogger().Errorf("api QueryUserModifyInfo QueryUser     err is %s\n", err.Error())
+			return ErrorResp(ctx, consts.StatusText[consts.CodeQueryUserNotExist], consts.CodeQueryUserNotExist)
+		}
+		logs.GetLogger().Errorf("api QueryUserModifyInfo QueryUser    err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+	//查出用户角色
+	roleIDs, err := service.QueryUserRoleId(user.Id)
+	if err != nil {
+		logs.GetLogger().Errorf("api AuthLdapUser QueryUserRoleId is failed  err is %s   \n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	roleNames, err := service.QueryUserRoles(roleIDs)
+	if err != nil {
+		logs.GetLogger().Errorf("api AuthLdapUser QueryUserRoles is failed  err is %s   \n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	resp := &entity.UserInfo{
+		UserId:       strconv.FormatUint(user.Id, 10),
+		UserName:     user.UserName,
+		Email:        user.Email,
+		EmployeeType: user.EmployeeType,
+		Role:         roleNames,
+		DisplayName:  user.DisplayName,
+	}
+
+	return SuccessResp(ctx, resp)
+
 }
 
 func ModifyUserPassword(ctx echo.Context) error {
@@ -138,7 +256,7 @@ func AuthLdapUser(ctx echo.Context) error {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
 	}
 
-	log.Printf("req is  %s\n", req)
+	logs.GetLogger().Infof("req is  %s\n", req)
 
 	//根据参数 查找LDAP 用户是否存在
 	result, err := db.GetLdap().SearchUser(req)
@@ -147,8 +265,6 @@ func AuthLdapUser(ctx echo.Context) error {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapSearchUserFailed], consts.CodeLdapSearchUserFailed)
 	}
 
-	fmt.Printf("result is %v\n", result)
-	fmt.Printf("result len is %v\n", len(result.Entries))
 	//result 为空查询不到ldap用户 返回登录失败
 	if len(result.Entries) == 0 {
 		logs.GetLogger().Errorf("api AuthLdapUser SearchUser ldap  can't find user    err is", )
@@ -178,8 +294,11 @@ func AuthLdapUser(ctx echo.Context) error {
 	fmt.Printf("cn is : %v\n", ldapUserInfo)
 
 	user, err := service.QueryUser(ldapUserInfo.Cn)
+	fmt.Printf("user is %+v,", user)
+	fmt.Printf("err  is %+v,", err)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
+
 			uid, err := service.CreateUserRecord(models.User{UserName: ldapUserInfo.Cn, Email: ldapUserInfo.Mail, DisplayName: ldapUserInfo.DisPlayName, EmployeeType: strings.Join(ldapUserInfo.EmployeeType, ",")})
 			if err != nil {
 				logs.GetLogger().Errorf("api AuthLdapUser CreateUserRecord    err is %s\n", err.Error())
@@ -198,6 +317,8 @@ func AuthLdapUser(ctx echo.Context) error {
 			}
 
 		}
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+
 	}
 
 	if ldapUserInfo.Mail != user.Email || ldapUserInfo.DisPlayName != user.DisplayName || strings.Join(ldapUserInfo.EmployeeType, ",") != user.EmployeeType {
@@ -215,6 +336,11 @@ func AuthLdapUser(ctx echo.Context) error {
 
 	//生成TOKEN 存入redis
 	token := xid.New().String()
+
+	if err := db.RedisSet(user.UserName, token, time.Hour*6); err != nil {
+		logs.GetLogger().Errorf("api AuthLdapUser RedisSet is failed   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
 
 	log.Printf("api AuthLdapUser token  is %s   \n", token)
 
@@ -238,6 +364,7 @@ func AuthLdapUser(ctx echo.Context) error {
 	tmpMap["user_name"] = user.UserName
 	tmpMap["email"] = user.Email
 	tmpMap["employee_type"] = user.EmployeeType
+	tmpMap["display_name"] = user.DisplayName
 
 	if len(roleNames) != 0 {
 		tmpMap["roles"] = strings.Join(roleNames, ",")
@@ -248,7 +375,7 @@ func AuthLdapUser(ctx echo.Context) error {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 	}
 
-	if err := db.RedisSetKeyTtl(token, time.Minute*60); err != nil {
+	if err := db.RedisSetKeyTtl(token, time.Hour*6); err != nil {
 		logs.GetLogger().Errorf("api AuthLdapUser RedisSetKeyTtl is failed   err is %s\n", err.Error())
 		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
 	}
@@ -260,6 +387,7 @@ func AuthLdapUser(ctx echo.Context) error {
 		Email:        user.Email,
 		Role:         roleNames,
 		EmployeeType: user.EmployeeType,
+		DisplayName:  user.DisplayName,
 	}
 
 	return SuccessResp(ctx, resp)
@@ -267,7 +395,6 @@ func AuthLdapUser(ctx echo.Context) error {
 }
 
 func QueryUserInfo(ctx echo.Context) error {
-
 	token := ctx.Request().Header.Get("Authorization")
 	userMapInfo, err := db.RedisHGetAll(token)
 
@@ -287,6 +414,7 @@ func QueryUserInfo(ctx echo.Context) error {
 			Email:        userMapInfo["email"],
 			Role:         roles,
 			EmployeeType: userMapInfo["employee_type"],
+			DisplayName:  userMapInfo["display_name"],
 		}
 		return SuccessResp(ctx, resp)
 
@@ -298,6 +426,7 @@ func QueryUserInfo(ctx echo.Context) error {
 		UserName:     userMapInfo["user_name"],
 		Email:        userMapInfo["email"],
 		EmployeeType: userMapInfo["employee_type"],
+		DisplayName:  userMapInfo["display_name"],
 	}
 
 	return SuccessResp(ctx, resp)
