@@ -20,7 +20,7 @@ func BeforeRequestValidate(next echo.HandlerFunc) echo.HandlerFunc {
 
 		fmt.Println(reqPath)
 
-		if reqPath == "/api/ldap/user/login" || reqPath == "/api/ldap/health"  || reqPath == "/api/ldap/user/logout"{
+		if reqPath == "/api/ldap/user/login" || reqPath == "/api/ldap/health" {
 			return next(c)
 		}
 

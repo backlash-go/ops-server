@@ -39,7 +39,7 @@ func UpdateUserModifyInfo(ctx echo.Context) error {
 	req := new(entity.LdapUserInfo)
 	if err := ctx.Bind(req); err != nil {
 		logs.GetLogger().Errorf("UpdateUserModifyInfo req is failed reqParams is %s  err is %s\n", req, err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	user, err := service.QueryUser(req.Cn)
@@ -113,7 +113,7 @@ func QueryUserModifyInfo(ctx echo.Context) error {
 	fmt.Println(req)
 	if err := ctx.Bind(req); err != nil {
 		logs.GetLogger().Errorf("QueryUserModifyInfo req is failed reqParams is %s  err is %s\n", req, err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 	user, err := service.QueryUser(req.Cn)
 	if err != nil {
@@ -154,13 +154,13 @@ func ModifyUserPassword(ctx echo.Context) error {
 	req := new(entity.ModifyUserPassword)
 	if err := ctx.Bind(req); err != nil {
 		logs.GetLogger().Errorf("ModifyUserPassword req is failed reqParams is %s  err is %s\n", req, err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	fmt.Println(req)
 	if req.Password == "" || req.Cn == "" {
 		logs.GetLogger().Errorf("ModifyUserPassword  req is null is null   req is %v\n", req)
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	err := db.GetLdap().ModifyUserPassword(req)
@@ -179,14 +179,14 @@ func CreateLdapUser(ctx echo.Context) error {
 	req := &entity.CreateUserParams{}
 	if err := ctx.Bind(req); err != nil {
 		logs.GetLogger().Errorf("CreateLdapUser req is failed reqParams is %s  err is %s\n", req, err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	log.Printf("req is  %s\n", req)
 
 	if req.Cn == "" || req.DisplayName == "" || req.GivenName == "" || len(req.EmployeeType) == 0 || req.UserPassword == "" || req.Mail == "" {
 		logs.GetLogger().Errorf("req is failed reqParams is %s\n", req)
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	if err := db.GetLdap().CreateUser(req); err != nil {
@@ -225,12 +225,12 @@ func DeleteLdapUser(ctx echo.Context) error {
 	req := new(entity.DeleteUserParams)
 	if err := ctx.Bind(req); err != nil {
 		logs.GetLogger().Errorf("DeleteLdapUser req is failed reqParams is %s  err is %s\n", req, err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	if req.Cn == "" {
 		logs.GetLogger().Errorf("DeleteLdapUser req.Cn is null   req is %s\n", req)
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	Dn := fmt.Sprintf("cn=%s,ou=person,dc=langzhihe,dc=com", req.Cn)
@@ -253,7 +253,7 @@ func AuthLdapUser(ctx echo.Context) error {
 
 	if err := ctx.Bind(req); err != nil {
 		logs.GetLogger().Errorf("api AuthLdapUser req is failed reqParams is %s  err is %s\n", req, err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	logs.GetLogger().Infof("req is  %s\n", req)
@@ -400,7 +400,7 @@ func QueryUserInfo(ctx echo.Context) error {
 
 	if err != nil {
 		logs.GetLogger().Errorf("api QueryUserInfo RedisHGetAll is failed   err is %s\n", err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 
 	v, ok := userMapInfo["roles"]
@@ -441,7 +441,6 @@ func Logout(ctx echo.Context) error {
 	if err != nil {
 		return ErrorResp(ctx, consts.StatusText[consts.CodeUserDelTokenFailed], consts.CodeUserDelTokenFailed)
 	}
-
 	return SuccessResp(ctx, nil)
 
 }
@@ -450,7 +449,7 @@ func GetLdapUsersListInfo(ctx echo.Context) error {
 	req := &entity.UserInfoListRequest{}
 	if err := ctx.Bind(req); err != nil {
 		logs.GetLogger().Errorf("GetLdapUsersListInfo req is failed reqParams is %s  err is %s\n", req, err.Error())
-		return ErrorResp(ctx, consts.StatusText[consts.CodeLdapParamIsError], consts.CodeLdapParamIsError)
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = 10

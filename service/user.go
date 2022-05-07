@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"ops-server/db"
 	"ops-server/entity"
 	"ops-server/models"
@@ -24,7 +23,6 @@ func DeleteUserById(Id uint64) error {
 }
 
 
-
 func QueryUserListAndRoles(userID []uint64) (userRole []entity.UserIDRoleContact, err error) {
 
 	//sql := `SELECT user_id, group_concat(distinct role_name) as role FROM ops.user_role join ops.role on ops.user_role.role_id = ops.role.id   group by user_id`
@@ -36,7 +34,6 @@ func QueryUserListAndRoles(userID []uint64) (userRole []entity.UserIDRoleContact
 
 func QueryUserList(req *entity.UserInfoListRequest) (users []entity.UserList, totalCount int64, err error) {
 
-	fmt.Println(req.SearchName)
 
 	if len(req.SearchName) > 0 {
 		err = db.GetDB().Model(&models.User{}).Offset(req.PageSize*(req.Page-1)).Limit(req.PageSize).Where("user_name LIKE ?", "%"+req.SearchName+"%").Scan(&users).Error

@@ -7,7 +7,7 @@ import (
 
 type Permission struct {
 	Id        uint64         `gorm:"column:id" form:"id" json:"id"`
-	Api       string         `gorm:"column:user_name" form:"user_name" json:"user_name"`
+	Api       string         `gorm:"column:api" form:"api" json:"api"`
 	Name      string         `gorm:"column:name", form:"name",json:"name"`
 	CreatedAt time.Time      `gorm:"column:created_at" form:"created_at" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"column:updated_at" form:"updated_at" json:"updated_at"`

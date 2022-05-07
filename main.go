@@ -13,19 +13,16 @@ func main() {
 	e := echo.New()
 
 	api.OperateLdap(e.Group("/api/ldap"))
+	api.OperatePermission(e.Group("/api/permission"))
 
 	//设置跨域请求通行
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept,echo.HeaderXRequestedWith,echo.HeaderAuthorization},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderXRequestedWith, echo.HeaderAuthorization},
 	}))
 
 	e.Use(middle.BeforeRequestValidate)
-
-
-
-
 
 	db.Init()
 	db.InitLdap()
