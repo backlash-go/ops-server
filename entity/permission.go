@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+type PermissionInfoRequest struct {
+	ID uint64 `json:"id" query:"id"`
+}
+
 type UpdateApiParamsRequest struct {
 	ID   uint64   `json:"id"`
 	Api  string   `json:"api`

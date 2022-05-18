@@ -3,11 +3,13 @@ package api
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"log"
 	"ops-server/consts"
 	"ops-server/entity"
 	"ops-server/logs"
 	"ops-server/models"
 	"ops-server/service"
+	"strings"
 )
 
 func OperatePermission(g *echo.Group) {
@@ -15,6 +17,42 @@ func OperatePermission(g *echo.Group) {
 	g.POST("/create", CreateApi)
 	g.DELETE("/delete", DeleteApi)
 	g.POST("/modify", UpdateApiInfo)
+	g.GET("/info",QueryPermissionInfo)
+}
+
+func QueryPermissionInfo(ctx echo.Context) error {
+
+	req := &entity.PermissionInfoRequest{}
+
+	if err := ctx.Bind(req); err != nil {
+		logs.GetLogger().Errorf("UpdateApiInfo req is failed reqParams is %s  err is %s\n", req, err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeParamIsError], consts.CodeParamIsError)
+	}
+	log.Println(req.ID)
+
+	permissionInfo, err := service.QueryPermission(req.ID)
+
+	if err != nil {
+		logs.GetLogger().Errorf("api QueryPermissionInfo QueryPermission is failed   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	roleIds, err := service.QueryPermissionRole(req.ID)
+	if err != nil {
+		logs.GetLogger().Errorf("api QueryPermissionInfo QueryPermissionRole is failed   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	roleNames, err := service.QueryPermissionRoleName(roleIds)
+
+	if err != nil {
+		logs.GetLogger().Errorf("api QueryPermissionInfo QueryPermissionRoleName is failed   err is %s\n", err.Error())
+		return ErrorResp(ctx, consts.StatusText[consts.CodeInternalServerError], consts.CodeInternalServerError)
+	}
+
+	resp := entity.PermissionInfoList{Id: permissionInfo.Id, Name: permissionInfo.Name, Api: permissionInfo.Api, Role: strings.Join(roleNames, ",")}
+
+	return SuccessResp(ctx, resp)
 }
 
 func UpdateApiInfo(ctx echo.Context) error {
